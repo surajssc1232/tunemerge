@@ -131,5 +131,32 @@ public class SpotifyService {
         return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
     }
 
+    public ResponseEntity<String> getUserPlaylists() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(getAccessToken());
+        HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
+
+        String url = BASE_URL + "/me/playlists";
+        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    }
+
+    public ResponseEntity<String> getPlaylistTracks(String playlistId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(getAccessToken());
+        HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
+
+        String url = BASE_URL + "/playlists/" + playlistId + "/tracks";
+        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    }
+
+    public ResponseEntity<String> getUserProfile() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(getAccessToken());
+        HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
+
+        String url = BASE_URL + "/me";
+        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    }
+
     // Add more methods for other Spotify API endpoints as needed
 }

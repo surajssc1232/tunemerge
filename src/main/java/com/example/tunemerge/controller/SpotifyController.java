@@ -43,4 +43,19 @@ public class SpotifyController {
     public ResponseEntity<String> getTrack(@PathVariable("id") String trackId) {
         return spotifyService.getTrack(trackId);
     }
+
+    @GetMapping("/me/playlists")
+    public ResponseEntity<String> getUserPlaylists() {
+        return spotifyService.getUserPlaylists();
+    }
+
+    @GetMapping("/playlist/{id}/tracks")
+    public ResponseEntity<String> getPlaylistTracks(@PathVariable("id") String playlistId) {
+        return spotifyService.getPlaylistTracks(playlistId);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<String> getUserProfile() {
+        return spotifyService.getUserProfile();
+    }
 }
