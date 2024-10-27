@@ -188,7 +188,7 @@ public class SpotifyService {
         
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
         logger.info("Tracks response status: {}", response.getStatusCode());
-        logger.debug("Tracks response body: {}", response.getBody());
+        // Removed debug logging of response body
         
         return response;
     }
