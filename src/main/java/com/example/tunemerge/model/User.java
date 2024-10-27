@@ -21,15 +21,20 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, unique = true)
+    
+    @Column(unique = true)
     private String spotifyId;
 
-    @Column(nullable = false)
+    private String email;
     private String displayName;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    @Column(length = 500)
+    private String accessToken;
+
+    @Column(length = 500)
+    private String refreshToken;
+
+    private long tokenExpirationTime;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Playlist> playlists;

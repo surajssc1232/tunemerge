@@ -1,106 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- Keep the existing head section -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TuneMerge - Dashboard</title>
-    <style>
-        /* Keep existing styles */
-    </style>
+    <title>TuneMerge Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <div class="header">
-            <h1>TuneMerge Dashboard</h1>
-        </div>
-        <div class="button-container">
-            <button class="action-button" onclick="getUserProfile()">Get User Profile</button>
-            <button class="action-button" onclick="getUserPlaylists()">Get User Playlists</button>
-        </div>
-        <div id="content-area">
-            Select an option above to view content
-        </div>
-    </div>
+    <h1>TuneMerge Dashboard</h1>
+    <div id="userProfile"></div>
+    <h2>Your Playlists</h2>
+    <ul id="playlists"></ul>
 
     <script>
-        console.log('Dashboard script loaded'); // Add logging
+        const urlParams = new URLSearchParams(window.location.search);
+        const spotifyId = urlParams.get('spotifyId');
 
-        // Check authentication when page loads
-        window.onload = function() {
-            console.log('Window loaded, checking authentication'); // Add logging
-            fetch('/api/spotify/me')
-                .then(response => {
-                    console.log('Auth check response:', response.status); // Add logging
-                    if (!response.ok) {
-                        throw new Error('Not authenticated');
-                    }
-                    return response.json();
-                })
-                .catch(error => {
-                    console.error('Auth check error:', error); // Add logging
-                    window.location.href = '/';
-                });
-        };
+        axios.get(`/api/spotify/dashboard?spotifyId=${spotifyId}`)
+            .then(response => {
+                const data = response.data;
+                const userProfile = JSON.parse(data.userProfile);
+                const userPlaylists = JSON.parse(data.userPlaylists);
 
-        function getUserProfile() {
-            console.log('Getting user profile'); // Add logging
-            fetch('/api/spotify/me')
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Profile data:', data); // Add logging
-                    const contentArea = document.getElementById('content-area');
-                    contentArea.innerHTML = `
-                        <h2>User Profile</h2>
-                        <p><strong>Display Name:</strong> ${data.display_name}</p>
-                        <p><strong>Email:</strong> ${data.email || 'Not available'}</p>
-                        <p><strong>Country:</strong> ${data.country || 'Not available'}</p>
-                        ${data.images && data.images[0] ? 
-                            `<img src="${data.images[0].url}" alt="Profile Picture" style="width: 100px; border-radius: 50%;">` 
-                            : ''}
-                    `;
-                })
-                .catch(error => {
-                    console.error('Profile error:', error); // Add logging
-                    document.getElementById('content-area').innerHTML = 
-                        'Failed to load user profile. Please try again.';
-                });
-        }
+                document.getElementById('userProfile').innerHTML = `
+                    <h2>Welcome, ${userProfile.display_name}!</h2>
+                    <p>Email: ${userProfile.email}</p>
+                    <img src="${userProfile.images[0]?.url || ''}" alt="Profile Picture" width="100">
+                `;
 
-        function getUserPlaylists() {
-            console.log('Getting user playlists'); // Add logging
-            fetch('/api/spotify/me/playlists')
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Playlists data:', data); // Add logging
-                    const contentArea = document.getElementById('content-area');
-                    contentArea.innerHTML = '<h2>Your Playlists</h2>';
-                    
-                    if (data.items && data.items.length > 0) {
-                        const playlistsList = document.createElement('div');
-                        data.items.forEach(playlist => {
-                            const playlistElement = document.createElement('div');
-                            playlistElement.className = 'playlist-item';
-                            playlistElement.innerHTML = `
-                                <h3>${playlist.name}</h3>
-                                <p>${playlist.tracks.total} tracks</p>
-                                ${playlist.images && playlist.images[0] ? 
-                                    `<img src="${playlist.images[0].url}" alt="Playlist Cover" style="width: 50px; height: 50px; border-radius: 4px;">` 
-                                    : ''}
-                            `;
-                            playlistsList.appendChild(playlistElement);
-                        });
-                        contentArea.appendChild(playlistsList);
-                    } else {
-                        contentArea.innerHTML += '<p>No playlists found.</p>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Playlists error:', error); // Add logging
-                    document.getElementById('content-area').innerHTML = 
-                        'Failed to load playlists. Please try again.';
+                const playlistsElement = document.getElementById('playlists');
+                userPlaylists.items.forEach(playlist => {
+                    const li = document.createElement('li');
+                    li.textContent = playlist.name;
+                    playlistsElement.appendChild(li);
                 });
-        }
+            })
+            .catch(error => {
+                console.error('Error fetching dashboard data:', error);
+            });
     </script>
 </body>
 </html>

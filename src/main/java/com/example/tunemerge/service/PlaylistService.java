@@ -11,21 +11,13 @@ import com.example.tunemerge.model.User;
 import com.example.tunemerge.repository.PlaylistRepository;
 
 @Service
-public class PlaylistService {
-
+public class PlaylistService extends BaseService<Playlist, Long> {
     private final PlaylistRepository playlistRepository;
 
     @Autowired
-    public PlaylistService(PlaylistRepository playlistRepository) {
-        this.playlistRepository = playlistRepository;
-    }
-
-    public Playlist createPlaylist(Playlist playlist) {
-        return playlistRepository.save(playlist);
-    }
-
-    public Optional<Playlist> getPlaylistById(Long id) {
-        return playlistRepository.findById(id);
+    public PlaylistService(PlaylistRepository repository) {
+        super(repository);
+        this.playlistRepository = repository;
     }
 
     public Optional<Playlist> getPlaylistBySpotifyId(String spotifyId) {
@@ -34,16 +26,6 @@ public class PlaylistService {
 
     public List<Playlist> getPlaylistsByUser(User user) {
         return playlistRepository.findByUser(user);
-    }
-
-   
-
-    public Playlist updatePlaylist(Playlist playlist) {
-        return playlistRepository.save(playlist);
-    }
-
-    public void deletePlaylist(Long id) {
-        playlistRepository.deleteById(id);
     }
 
     public boolean existsBySpotifyId(String spotifyId) {

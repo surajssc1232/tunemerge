@@ -1,9 +1,13 @@
 package com.example.tunemerge.service;
 
 import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -17,9 +21,12 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.example.tunemerge.model.SpotifyTokenResponse;
+import com.example.tunemerge.model.User;
 
 @Service
 public class SpotifyService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SpotifyService.class);
 
     @Value("${spotify.client.id}")
     private String clientId;
@@ -38,26 +45,28 @@ public class SpotifyService {
     private final String TOKEN_URL = "https://accounts.spotify.com/api/token";
     private final RestTemplate restTemplate;
 
-    private String accessToken;
-    private String refreshToken;
-    private long tokenExpirationTime;
+    private final UserService userService;
 
-    public SpotifyService(RestTemplate restTemplate) {
+    public SpotifyService(RestTemplate restTemplate, UserService userService) {
         this.restTemplate = restTemplate;
+        this.userService = userService;
     }
 
     public String getAuthorizationUrl() {
         String state = UUID.randomUUID().toString();
-        return UriComponentsBuilder.fromHttpUrl(AUTH_URL)
+        String url = UriComponentsBuilder.fromHttpUrl(AUTH_URL)
                 .queryParam("client_id", clientId)
                 .queryParam("response_type", "code")
-                .queryParam("redirect_uri", redirectUri)  // Use the redirectUri from properties
+                .queryParam("redirect_uri", redirectUri)
                 .queryParam("state", state)
                 .queryParam("scope", "user-read-private user-read-email playlist-modify-public playlist-modify-private")
                 .build().toUriString();
+        logger.info("Generated authorization URL: {}", url);
+        return url;
     }
 
-    public void exchangeCodeForTokens(String code) {
+    public String exchangeCodeForTokens(String code) {
+        logger.info("Exchanging code for tokens");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setBasicAuth(Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes()));
@@ -69,33 +78,78 @@ public class SpotifyService {
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
-        ResponseEntity<SpotifyTokenResponse> response = restTemplate.postForEntity(TOKEN_URL, request, SpotifyTokenResponse.class);
+        try {
+            ResponseEntity<SpotifyTokenResponse> response = restTemplate.postForEntity(TOKEN_URL, request, SpotifyTokenResponse.class);
+            logger.info("Token exchange response status: {}", response.getStatusCode());
 
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            SpotifyTokenResponse tokenResponse = response.getBody();
-            this.accessToken = tokenResponse.getAccessToken();
-            this.refreshToken = tokenResponse.getRefreshToken();
-            this.tokenExpirationTime = System.currentTimeMillis() + (tokenResponse.getExpiresIn() * 1000);
-        } else {
-            throw new RuntimeException("Failed to exchange code for tokens");
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                SpotifyTokenResponse tokenResponse = response.getBody();
+                logger.info("Successfully received token response");
+                
+                HttpHeaders profileHeaders = new HttpHeaders();
+                profileHeaders.setBearerAuth(tokenResponse.getAccessToken());
+                HttpEntity<String> profileRequest = new HttpEntity<>("parameters", profileHeaders);
+                
+                ResponseEntity<Map<String, Object>> profileResponse = restTemplate.exchange(
+                    BASE_URL + "/me",
+                    HttpMethod.GET,
+                    profileRequest,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+                );
+                logger.info("User profile response status: {}", profileResponse.getStatusCode());
+
+                if (profileResponse.getBody() != null) {
+                    String spotifyId = (String) profileResponse.getBody().get("id");
+                    String email = (String) profileResponse.getBody().get("email");
+                    String displayName = (String) profileResponse.getBody().get("display_name");
+                    logger.info("Retrieved user profile. Spotify ID: {}, Email: {}, Display Name: {}", spotifyId, email, displayName);
+
+                    User user = userService.getUserBySpotifyId(spotifyId)
+                        .orElse(new User());
+
+                    user.setSpotifyId(spotifyId);
+                    user.setEmail(email);
+                    user.setDisplayName(displayName);
+                    user.setAccessToken(tokenResponse.getAccessToken());
+                    user.setRefreshToken(tokenResponse.getRefreshToken());
+                    user.setTokenExpirationTime(System.currentTimeMillis() + (tokenResponse.getExpiresIn() * 1000));
+
+                    userService.createUser(user);
+                    logger.info("User information saved/updated in the database");
+                    
+                    return spotifyId;
+                } else {
+                    logger.error("User profile response body is null");
+                    throw new RuntimeException("Failed to retrieve user profile");
+                }
+            } else {
+                logger.error("Failed to exchange code for tokens. Status: {}", response.getStatusCode());
+                throw new RuntimeException("Failed to exchange code for tokens");
+            }
+        } catch (Exception e) {
+            logger.error("Exception occurred during token exchange", e);
+            throw new RuntimeException("Failed to exchange code for tokens", e);
         }
     }
 
-    public String getAccessToken() {
-        if (accessToken == null || System.currentTimeMillis() > tokenExpirationTime) {
-            refreshAccessToken();
+    public String getAccessTokenForUser(String spotifyId) {
+        User user = userService.getUserBySpotifyId(spotifyId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (System.currentTimeMillis() > user.getTokenExpirationTime()) {
+            refreshAccessToken(user);
         }
-        return accessToken;
+        return user.getAccessToken();
     }
 
-    private void refreshAccessToken() {
+    private void refreshAccessToken(User user) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setBasicAuth(Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes()));
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "refresh_token");
-        body.add("refresh_token", refreshToken);
+        body.add("refresh_token", user.getRefreshToken());
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
@@ -103,50 +157,42 @@ public class SpotifyService {
 
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
             SpotifyTokenResponse tokenResponse = response.getBody();
-            this.accessToken = tokenResponse.getAccessToken();
-            this.tokenExpirationTime = System.currentTimeMillis() + (tokenResponse.getExpiresIn() * 1000);
+            user.setAccessToken(tokenResponse.getAccessToken());
+            user.setTokenExpirationTime(System.currentTimeMillis() + (tokenResponse.getExpiresIn() * 1000));
             if (tokenResponse.getRefreshToken() != null) {
-                this.refreshToken = tokenResponse.getRefreshToken();
+                user.setRefreshToken(tokenResponse.getRefreshToken());
             }
+            userService.updateUser(user);
         } else {
             throw new RuntimeException("Failed to refresh access token");
         }
     }
 
-   
-
-    
-
-    public ResponseEntity<String> getUserPlaylists() {
+    public ResponseEntity<String> getUserPlaylists(String spotifyId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(getAccessToken());
+        headers.setBearerAuth(getAccessTokenForUser(spotifyId));
         HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
 
         String url = BASE_URL + "/me/playlists";
         return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
     }
 
-    public ResponseEntity<String> getPlaylistTracks(String playlistId) {
+    public ResponseEntity<String> getPlaylistTracks(String playlistId, String spotifyId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(getAccessToken());
+        headers.setBearerAuth(getAccessTokenForUser(spotifyId));
         HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
 
         String url = BASE_URL + "/playlists/" + playlistId + "/tracks";
         return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
     }
 
-    public ResponseEntity<String> getUserProfile() {
+    public ResponseEntity<String> getUserProfile(String spotifyId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(getAccessToken());
+        headers.setBearerAuth(getAccessTokenForUser(spotifyId));
         HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
 
         String url = BASE_URL + "/me";
         return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
     }
 
-    public boolean isAuthenticated() {
-        return accessToken != null && System.currentTimeMillis() < tokenExpirationTime;
-    }
-
-    // Add more methods for other Spotify API endpoints as needed
 }
