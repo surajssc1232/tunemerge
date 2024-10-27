@@ -20,9 +20,4 @@ public class HomeController {
         logger.info("Dashboard page requested");
         return "forward:/dashboard.html";
     }
-
-    @GetMapping("/debug")
-    public String debug() {
-        return "HomeController is working";
-    }
 }
