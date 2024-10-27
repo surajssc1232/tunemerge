@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- ... (keep existing head content) ... -->
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- ... (keep existing content) ... -->
+    </div>
+
+    <script>
+        // Check authentication status when the page loads
+        window.onload = function() {
+            fetch('/api/spotify/me')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Not authenticated');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // User is authenticated, enable dashboard functionality
+                    document.querySelector('.button-container').style.display = 'flex';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // User is not authenticated, redirect to login page
+                    window.location.href = '/';
+                });
+        };
+
+        // ... (keep existing showUserProfile and showPlaylists functions) ...
+    </script>
+</body>
+</html>

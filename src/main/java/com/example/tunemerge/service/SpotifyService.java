@@ -158,5 +158,9 @@ public class SpotifyService {
         return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
     }
 
+    public boolean isAuthenticated() {
+        return accessToken != null && System.currentTimeMillis() < tokenExpirationTime;
+    }
+
     // Add more methods for other Spotify API endpoints as needed
 }
