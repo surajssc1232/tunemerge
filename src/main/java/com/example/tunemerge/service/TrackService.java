@@ -1,13 +1,14 @@
 package com.example.tunemerge.service;
 
-import com.example.tunemerge.model.Playlist;
-import com.example.tunemerge.model.Track;
-import com.example.tunemerge.repository.TrackRepository;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import com.example.tunemerge.model.Playlist;
+import com.example.tunemerge.model.Track;
+import com.example.tunemerge.repository.TrackRepository;
 
 @Service
 public class TrackService {
@@ -35,9 +36,7 @@ public class TrackService {
         return trackRepository.findByPlaylist(playlist);
     }
 
-    public List<Track> getAllTracks() {
-        return trackRepository.findAll();
-    }
+   
 
     public Track updateTrack(Track track) {
         return trackRepository.save(track);

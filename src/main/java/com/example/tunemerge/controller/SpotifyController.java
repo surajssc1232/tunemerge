@@ -44,15 +44,9 @@ public class SpotifyController {
         return new ModelAndView("redirect:/dashboard");
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<String> searchTracks(@RequestParam("query") String query) {
-        return spotifyService.searchTracks(query);
-    }
+    
 
-    @GetMapping("/track/{id}")
-    public ResponseEntity<String> getTrack(@PathVariable("id") String trackId) {
-        return spotifyService.getTrack(trackId);
-    }
+   
 
     @GetMapping("/me/playlists")
     public ResponseEntity<String> getUserPlaylists() {

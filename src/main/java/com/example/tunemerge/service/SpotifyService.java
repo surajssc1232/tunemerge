@@ -113,23 +113,9 @@ public class SpotifyService {
         }
     }
 
-    public ResponseEntity<String> searchTracks(String query) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(getAccessToken());
-        HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
+   
 
-        String url = BASE_URL + "/search?q=" + query + "&type=track";
-        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-    }
-
-    public ResponseEntity<String> getTrack(String trackId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(getAccessToken());
-        HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
-
-        String url = BASE_URL + "/tracks/" + trackId;
-        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-    }
+    
 
     public ResponseEntity<String> getUserPlaylists() {
         HttpHeaders headers = new HttpHeaders();
