@@ -17,9 +17,54 @@
             border-radius: 8px;
             width: 200px;
         }
-        .track-list {
-            max-height: 300px;
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: relative;
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            width: 70%;
+            max-height: 70vh;
+            border-radius: 8px;
             overflow-y: auto;
+        }
+        .close-button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .track-item {
+            display: flex;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+        .track-info {
+            flex-grow: 1;
+        }
+        .track-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .track-artists {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
         }
     </style>
 </head>
@@ -35,22 +80,74 @@
 
     <div class="playlist-container" id="playlists"></div>
 
+    <!-- Modal -->
+    <div id="tracksModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <h2 id="modalPlaylistName"></h2>
+            <div id="tracksList"></div>
+        </div>
+    </div>
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const spotifyId = urlParams.get('spotifyId');
-        let selectedPlaylists = new Set();
 
-        function loadDashboard() {
-            axios.get(`/api/spotify/dashboard?spotifyId=${spotifyId}`)
-                .then(response => {
-                    const data = response.data;
-                    const userProfile = JSON.parse(data.userProfile);
-                    const userPlaylists = JSON.parse(data.userPlaylists);
+        async function viewTracks(playlistId, playlistName) {
+            const modal = document.getElementById('tracksModal');
+            const tracksList = document.getElementById('tracksList');
+            const modalPlaylistName = document.getElementById('modalPlaylistName');
 
-                    renderUserProfile(userProfile);
-                    renderPlaylists(userPlaylists.items);
-                })
-                .catch(error => console.error('Error:', error));
+            modalPlaylistName.textContent = playlistName;
+            tracksList.innerHTML = '<div class="loading">Loading tracks...</div>';
+            modal.style.display = 'block';
+
+            try {
+                console.log('Fetching tracks for playlist:', playlistId);
+                const response = await axios.get(`/api/spotify/me/playlists/${playlistId}/tracks?spotifyId=${spotifyId}`);
+                console.log('Raw response:', response.data);
+                
+                const tracksData = response.data;
+
+                if (!tracksData || !tracksData.items) {
+                    throw new Error('Invalid tracks data format');
+                }
+
+                tracksList.innerHTML = tracksData.items.map(item => {
+                    if (!item.track) return '';
+                    return `
+                        <div class="track-item">
+                            <div class="track-info">
+                                <div class="track-title">${item.track.name || 'Unknown Title'}</div>
+                                <div class="track-artists">
+                                    ${(item.track.artists || []).map(artist => artist.name).join(', ')}
+                                    ${item.track.album ? `• ${item.track.album.name}` : ''}
+                                </div>
+                            </div>
+                            <div class="track-duration">
+                                ${item.track.duration_ms ? formatDuration(item.track.duration_ms) : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error fetching tracks:', error);
+                tracksList.innerHTML = `<div class="error">Error loading tracks: ${error.message}</div>`;
+            }
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await axios.get(`/api/spotify/dashboard?spotifyId=${spotifyId}`);
+                const data = response.data;
+                const userProfile = JSON.parse(data.userProfile);
+                const userPlaylists = JSON.parse(data.userPlaylists);
+
+                renderUserProfile(userProfile);
+                renderPlaylists(userPlaylists.items);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
         }
 
         function renderUserProfile(profile) {
@@ -65,30 +162,30 @@
             const container = document.getElementById('playlists');
             container.innerHTML = playlists.map(playlist => `
                 <div class="playlist-card">
-                    <input type="checkbox" onchange="togglePlaylistSelection('${playlist.id}')">
                     <h3>${playlist.name}</h3>
                     <p>Tracks: ${playlist.tracks.total}</p>
-                    <button onclick="viewTracks('${playlist.id}')">View Tracks</button>
+                    <button onclick="viewTracks('${playlist.id}', '${playlist.name}')">View Tracks</button>
                 </div>
             `).join('');
         }
 
-        function togglePlaylistSelection(playlistId) {
-            if (selectedPlaylists.has(playlistId)) {
-                selectedPlaylists.delete(playlistId);
-            } else {
-                selectedPlaylists.add(playlistId);
-            }
+        function formatDuration(ms) {
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
 
-        function mergeSelectedPlaylists() {
-            const newPlaylistName = document.getElementById('newPlaylistName').value;
-            if (!newPlaylistName || selectedPlaylists.size < 2) {
-                alert('Please select at least 2 playlists and provide a name for the merged playlist');
-                return;
-            }
+        function closeModal() {
+            const modal = document.getElementById('tracksModal');
+            modal.style.display = 'none';
+        }
 
-            // Implement merge logic here
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('tracksModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
         }
 
         loadDashboard();

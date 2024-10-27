@@ -179,11 +179,18 @@ public class SpotifyService {
 
     public ResponseEntity<String> getPlaylistTracks(String playlistId, String spotifyId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(getAccessTokenForUser(spotifyId));
+        String accessToken = getAccessTokenForUser(spotifyId);
+        headers.setBearerAuth(accessToken);
         HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
 
         String url = BASE_URL + "/playlists/" + playlistId + "/tracks";
-        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+        logger.info("Fetching tracks from URL: {}", url);
+        
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+        logger.info("Tracks response status: {}", response.getStatusCode());
+        logger.debug("Tracks response body: {}", response.getBody());
+        
+        return response;
     }
 
     public ResponseEntity<String> getUserProfile(String spotifyId) {
