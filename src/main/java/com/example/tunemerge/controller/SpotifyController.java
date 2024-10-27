@@ -3,6 +3,8 @@ package com.example.tunemerge.controller;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.example.tunemerge.service.SpotifyService;
 
@@ -18,6 +21,7 @@ import com.example.tunemerge.service.SpotifyService;
 public class SpotifyController {
 
     private final SpotifyService spotifyService;
+    private static final Logger logger = LoggerFactory.getLogger(SpotifyController.class);
 
     @Autowired
     public SpotifyController(SpotifyService spotifyService) {
@@ -33,9 +37,11 @@ public class SpotifyController {
     }
 
     @GetMapping("/callback")
-    public String callback(@RequestParam("code") String code) {
+    public ModelAndView callback(@RequestParam("code") String code) {
+        logger.info("Received callback with code");
         spotifyService.exchangeCodeForTokens(code);
-        return "redirect:/dashboard";
+        logger.info("Tokens exchanged successfully, redirecting to dashboard");
+        return new ModelAndView("redirect:/dashboard");
     }
 
     @GetMapping("/search")
@@ -50,6 +56,7 @@ public class SpotifyController {
 
     @GetMapping("/me/playlists")
     public ResponseEntity<String> getUserPlaylists() {
+        logger.info("Getting user playlists");
         return spotifyService.getUserPlaylists();
     }
 
@@ -60,6 +67,7 @@ public class SpotifyController {
 
     @GetMapping("/me")
     public ResponseEntity<String> getUserProfile() {
+        logger.info("Getting user profile");
         return spotifyService.getUserProfile();
     }
 }
