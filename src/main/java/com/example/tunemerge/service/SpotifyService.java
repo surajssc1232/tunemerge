@@ -3,6 +3,9 @@ package com.example.tunemerge.service;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +25,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.example.tunemerge.model.SpotifyTokenResponse;
 import com.example.tunemerge.model.User;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class SpotifyService {
@@ -200,6 +205,65 @@ public class SpotifyService {
 
         String url = BASE_URL + "/me";
         return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    }
+
+    public ResponseEntity<String> createPlaylist(String userId, String name, boolean isPublic, String description) {
+        logger.info("Creating playlist for user ID: {}", userId);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(getAccessTokenForUser(userId));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("name", name);
+        requestBody.put("public", isPublic);
+        requestBody.put("description", description);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+        String url = BASE_URL + "/users/" + userId + "/playlists";
+
+        return restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+    }
+
+    public ResponseEntity<String> addTracksToPlaylist(String playlistId, List<String> trackUris, Integer position, String spotifyId) {
+        logger.info("Adding tracks to playlist: {} for user: {}", playlistId, spotifyId);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(getAccessTokenForUser(spotifyId));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("uris", trackUris);
+        if (position != null) {
+            requestBody.put("position", position);
+        }
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+        String url = BASE_URL + "/playlists/" + playlistId + "/tracks";
+
+        return restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+    }
+
+    public List<String> getTrackUrisFromResponse(String tracksJson) {
+        try {
+            List<String> uris = new ArrayList<>();
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode root = objectMapper.readTree(tracksJson);
+            JsonNode items = root.get("items");
+
+            if (items != null && items.isArray()) {
+                for (JsonNode item : items) {
+                    JsonNode track = item.get("track");
+                    if (track != null && track.has("uri")) {
+                        uris.add(track.get("uri").asText());
+                    }
+                }
+            }
+            return uris;
+        } catch (Exception e) {
+            logger.error("Error parsing track URIs: {}", e.getMessage());
+            throw new RuntimeException("Failed to parse track URIs", e);
+        }
     }
 
 }

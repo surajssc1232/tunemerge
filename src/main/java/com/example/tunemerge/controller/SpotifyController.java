@@ -27,11 +27,13 @@ import com.example.tunemerge.service.PlaylistService;
 import com.example.tunemerge.service.SpotifyService;
 import com.example.tunemerge.service.TrackService;
 import com.example.tunemerge.service.UserService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/spotify")
 public class SpotifyController {
-
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final SpotifyService spotifyService;
     private final UserService userService;
     private final PlaylistService playlistService;
@@ -140,50 +142,58 @@ public class SpotifyController {
             }
             User user = userOpt.get();
 
-            // Get playlist tracks from Spotify
+            // Get source playlist tracks
             ResponseEntity<String> tracksResponse = spotifyService.getPlaylistTracks(playlistId, spotifyId);
             if (tracksResponse.getStatusCode() != HttpStatus.OK) {
                 return ResponseEntity.status(tracksResponse.getStatusCode())
                     .body(Collections.singletonMap("error", "Failed to fetch playlist tracks"));
             }
 
-            // Save playlist and tracks
+            // Get playlist details
             Optional<Playlist> playlistOpt = playlistService.getPlaylistBySpotifyId(playlistId);
-            Playlist playlist;
             if (!playlistOpt.isPresent()) {
-                // If playlist doesn't exist, create it
-                ResponseEntity<String> playlistResponse = spotifyService.getUserPlaylists(spotifyId);
-                if (playlistResponse.getStatusCode() == HttpStatus.OK && playlistResponse.getBody() != null) {
-                    List<Playlist> playlists = playlistService.savePlaylistsFromSpotifyResponse(playlistResponse.getBody(), user);
-                    playlist = playlists.stream()
-                        .filter(p -> p.getSpotifyId().equals(playlistId))
-                        .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Failed to create playlist"));
-                } else {
-                    throw new RuntimeException("Failed to fetch playlist details");
-                }
-            } else {
-                playlist = playlistOpt.get();
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Collections.singletonMap("error", "Playlist not found"));
+            }
+            Playlist sourcePlaylist = playlistOpt.get();
+
+            // Create new playlist on target platform
+            String newPlaylistName = sourcePlaylist.getName() + " (Exported)";
+            ResponseEntity<String> newPlaylistResponse = spotifyService.createPlaylist(
+                spotifyId, 
+                newPlaylistName,
+                false, // private playlist
+                "Exported from " + sourcePlaylist.getName()
+            );
+
+            if (newPlaylistResponse.getStatusCode() != HttpStatus.CREATED) {
+                return ResponseEntity.status(newPlaylistResponse.getStatusCode())
+                    .body(Collections.singletonMap("error", "Failed to create new playlist"));
             }
 
-            // Save tracks
-            trackService.saveTracksFromSpotifyResponse(tracksResponse.getBody(), playlist);
+            // Parse new playlist ID from response
+            JsonNode newPlaylistJson = objectMapper.readTree(newPlaylistResponse.getBody());
+            String newPlaylistId = newPlaylistJson.get("id").asText();
 
-            // Export to target platform (to be implemented)
-            switch(targetPlatform.toLowerCase()) {
-                case "youtube":
-                    // Implement YouTube export
-                    break;
-                case "wynk":
-                    // Implement Wynk export
-                    break;
-                default:
-                    return ResponseEntity.badRequest()
-                        .body(Collections.singletonMap("error", "Unsupported target platform"));
+            // Get track URIs and add them to new playlist
+            List<String> trackUris = spotifyService.getTrackUrisFromResponse(tracksResponse.getBody());
+            ResponseEntity<String> addTracksResponse = spotifyService.addTracksToPlaylist(
+                newPlaylistId,
+                trackUris,
+                0, // add at beginning
+                spotifyId
+            );
+
+            if (addTracksResponse.getStatusCode() != HttpStatus.CREATED) {
+                return ResponseEntity.status(addTracksResponse.getStatusCode())
+                    .body(Collections.singletonMap("error", "Failed to add tracks to new playlist"));
             }
 
-            return ResponseEntity.ok(Collections.singletonMap("message", 
-                "Playlist exported successfully to " + targetPlatform));
+            return ResponseEntity.ok(Map.of(
+                "message", "Playlist exported successfully",
+                "newPlaylistId", newPlaylistId
+            ));
+
         } catch (Exception e) {
             logger.error("Error exporting playlist: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
