@@ -186,8 +186,13 @@
         }
 
         async function exportPlaylist(playlistId) {
+            const targetPlatform = prompt('Select target platform (youtube/wynk):');
+            if (!targetPlatform) return;
+            
             try {
-                const response = await axios.post(`/api/spotify/me/playlists/${playlistId}/export?spotifyId=${spotifyId}`);
+                const response = await axios.post(
+                    `/api/spotify/me/playlists/${playlistId}/export?spotifyId=${spotifyId}&targetPlatform=${targetPlatform}`
+                );
                 if (response.data.message) {
                     alert('Playlist exported successfully!');
                 } else {

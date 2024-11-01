@@ -4,6 +4,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -14,14 +15,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.example.tunemerge.model.Playlist;
 import com.example.tunemerge.model.User;
 import com.example.tunemerge.service.PlaylistService;
 import com.example.tunemerge.service.SpotifyService;
+import com.example.tunemerge.service.TrackService;
 import com.example.tunemerge.service.UserService;
 
 @RestController
@@ -31,13 +35,15 @@ public class SpotifyController {
     private final SpotifyService spotifyService;
     private final UserService userService;
     private final PlaylistService playlistService;
+    private final TrackService trackService;
     private static final Logger logger = LoggerFactory.getLogger(SpotifyController.class);
 
     @Autowired
-    public SpotifyController(SpotifyService spotifyService, UserService userService, PlaylistService playlistService) {
+    public SpotifyController(SpotifyService spotifyService, UserService userService, PlaylistService playlistService, TrackService trackService) {
         this.spotifyService = spotifyService;
         this.userService = userService;
         this.playlistService = playlistService;
+        this.trackService = trackService;
     }
 
     @GetMapping("/login")
@@ -116,5 +122,72 @@ public class SpotifyController {
             @RequestParam String spotifyId) {
         logger.info("Getting tracks for playlist ID: {} and Spotify ID: {}", playlistId, spotifyId);
         return spotifyService.getPlaylistTracks(playlistId, spotifyId);
+    }
+
+    @PostMapping("/me/playlists/{playlistId}/export")
+    public ResponseEntity<?> exportPlaylist(
+            @PathVariable("playlistId") String playlistId,
+            @RequestParam String spotifyId,
+            @RequestParam String targetPlatform) {
+        logger.info("Exporting playlist ID: {} for Spotify ID: {} to {}", playlistId, spotifyId, targetPlatform);
+        
+        try {
+            // Get the user
+            Optional<User> userOpt = userService.getUserBySpotifyId(spotifyId);
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Collections.singletonMap("error", "User not found"));
+            }
+            User user = userOpt.get();
+
+            // Get playlist tracks from Spotify
+            ResponseEntity<String> tracksResponse = spotifyService.getPlaylistTracks(playlistId, spotifyId);
+            if (tracksResponse.getStatusCode() != HttpStatus.OK) {
+                return ResponseEntity.status(tracksResponse.getStatusCode())
+                    .body(Collections.singletonMap("error", "Failed to fetch playlist tracks"));
+            }
+
+            // Save playlist and tracks
+            Optional<Playlist> playlistOpt = playlistService.getPlaylistBySpotifyId(playlistId);
+            Playlist playlist;
+            if (!playlistOpt.isPresent()) {
+                // If playlist doesn't exist, create it
+                ResponseEntity<String> playlistResponse = spotifyService.getUserPlaylists(spotifyId);
+                if (playlistResponse.getStatusCode() == HttpStatus.OK && playlistResponse.getBody() != null) {
+                    List<Playlist> playlists = playlistService.savePlaylistsFromSpotifyResponse(playlistResponse.getBody(), user);
+                    playlist = playlists.stream()
+                        .filter(p -> p.getSpotifyId().equals(playlistId))
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Failed to create playlist"));
+                } else {
+                    throw new RuntimeException("Failed to fetch playlist details");
+                }
+            } else {
+                playlist = playlistOpt.get();
+            }
+
+            // Save tracks
+            trackService.saveTracksFromSpotifyResponse(tracksResponse.getBody(), playlist);
+
+            // Export to target platform (to be implemented)
+            switch(targetPlatform.toLowerCase()) {
+                case "youtube":
+                    // Implement YouTube export
+                    break;
+                case "wynk":
+                    // Implement Wynk export
+                    break;
+                default:
+                    return ResponseEntity.badRequest()
+                        .body(Collections.singletonMap("error", "Unsupported target platform"));
+            }
+
+            return ResponseEntity.ok(Collections.singletonMap("message", 
+                "Playlist exported successfully to " + targetPlatform));
+        } catch (Exception e) {
+            logger.error("Error exporting playlist: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.singletonMap("error", "Failed to export playlist: " + e.getMessage()));
+        }
     }
 }

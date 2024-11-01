@@ -41,6 +41,12 @@ public class PlaylistService extends BaseService<Playlist, Long> {
         return playlistRepository.existsBySpotifyId(spotifyId);
     }
 
+    /**
+     * Save playlists to database from Spotify response body
+     * @param playlistsJson Spotify response body in JSON format 
+     * @param user User to associate with the playlists 
+     * @return List of saved playlists 
+     */
     public List<Playlist> savePlaylistsFromSpotifyResponse(String playlistsJson, User user) {
         try {
             JsonNode root = objectMapper.readTree(playlistsJson);
