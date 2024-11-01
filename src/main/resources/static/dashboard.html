@@ -161,6 +161,7 @@
                     <h3>${playlist.name}</h3>
                     <p>Tracks: ${playlist.tracks.total}</p>
                     <button onclick="viewTracks('${playlist.id}', '${playlist.name}')">View Tracks</button>
+                    <button onclick="exportPlaylist('${playlist.id}')">Export Playlist</button>
                 </div>
             `).join('');
         }
@@ -181,6 +182,20 @@
             const modal = document.getElementById('tracksModal');
             if (event.target === modal) {
                 modal.style.display = 'none';
+            }
+        }
+
+        async function exportPlaylist(playlistId) {
+            try {
+                const response = await axios.post(`/api/spotify/me/playlists/${playlistId}/export?spotifyId=${spotifyId}`);
+                if (response.data.message) {
+                    alert('Playlist exported successfully!');
+                } else {
+                    throw new Error('Export failed');
+                }
+            } catch (error) {
+                console.error('Error exporting playlist:', error);
+                alert('Failed to export playlist: ' + (error.response?.data?.error || error.message));
             }
         }
 
