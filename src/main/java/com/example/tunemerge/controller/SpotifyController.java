@@ -133,6 +133,13 @@ public class SpotifyController {
             @RequestParam String targetPlatform) {
         logger.info("Exporting playlist ID: {} for Spotify ID: {} to {}", playlistId, spotifyId, targetPlatform);
         
+        // Only process if target platform is Spotify
+        if (!"spotify".equalsIgnoreCase(targetPlatform)) {
+            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                .body(Collections.singletonMap("message", 
+                    String.format("Export to %s is not yet implemented", targetPlatform)));
+        }
+
         try {
             // Get the user
             Optional<User> userOpt = userService.getUserBySpotifyId(spotifyId);
@@ -157,13 +164,13 @@ public class SpotifyController {
             }
             Playlist sourcePlaylist = playlistOpt.get();
 
-            // Create new playlist on target platform
-            String newPlaylistName = sourcePlaylist.getName() + " (Exported)";
+            // Create new playlist on Spotify
+            String newPlaylistName = sourcePlaylist.getName() + " (Copy)";
             ResponseEntity<String> newPlaylistResponse = spotifyService.createPlaylist(
                 spotifyId, 
                 newPlaylistName,
                 false, // private playlist
-                "Exported from " + sourcePlaylist.getName()
+                "Copy of " + sourcePlaylist.getName()
             );
 
             if (newPlaylistResponse.getStatusCode() != HttpStatus.CREATED) {
@@ -190,7 +197,7 @@ public class SpotifyController {
             }
 
             return ResponseEntity.ok(Map.of(
-                "message", "Playlist exported successfully",
+                "message", "Playlist copied successfully to Spotify",
                 "newPlaylistId", newPlaylistId
             ));
 
