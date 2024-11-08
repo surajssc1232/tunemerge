@@ -6,13 +6,48 @@
     <title>TuneMerge - Home</title>
     <style>
         /* ... (keep the existing styles) ... */
+
+        .spotify-button {
+            background-color: #1DB954;  /* Spotify's brand color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+
+        .spotify-button:hover {
+            background-color: #1ed760;  /* Slightly lighter shade for hover */
+        }
+
+        .amazon-button {
+            background-color: #232F3E;  /* Amazon's brand color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+
+        .amazon-button:hover {
+            background-color: #37475A;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to TuneMerge</h1>
-        <p>Connect your Spotify account to get started</p>
-        <button onclick="loginWithSpotify()" class="login-button">Login with Spotify</button>
+        <div class="buttons">
+            <button onclick="loginWithSpotify()" class="spotify-button">
+                Connect with Spotify
+            </button>
+            <button onclick="loginWithAmazon()" class="amazon-button">
+                Connect with Amazon Music
+            </button>
+        </div>
     </div>
 
     <script>
@@ -29,6 +64,11 @@
                 .catch(error => {
                     console.error('Error:', error);
                 });
+        }
+
+        function loginWithAmazon() {
+            console.log("Amazon Music login clicked - functionality coming soon");
+            alert("Amazon Music integration coming soon!");
         }
     </script>
 </body>

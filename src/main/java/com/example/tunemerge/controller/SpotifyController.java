@@ -4,7 +4,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -15,19 +14,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.example.tunemerge.model.Playlist;
 import com.example.tunemerge.model.User;
 import com.example.tunemerge.service.PlaylistService;
 import com.example.tunemerge.service.SpotifyService;
 import com.example.tunemerge.service.TrackService;
 import com.example.tunemerge.service.UserService;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
@@ -48,6 +44,7 @@ public class SpotifyController {
         this.trackService = trackService;
     }
 
+    // sends the user to spotify by getting the authorization url
     @GetMapping("/login")
     public ResponseEntity<Map<String, String>> login() {
         logger.info("Initiating Spotify login process");
@@ -58,6 +55,7 @@ public class SpotifyController {
         return ResponseEntity.ok(response);
     }
 
+    // spotify send the user back to this endpoint with the auth code
     @GetMapping("/callback")
     public ModelAndView callback(@RequestParam("code") String code, @RequestParam("state") String state) {
         logger.info("Received callback with code: {} and state: {}", code, state);
@@ -70,7 +68,7 @@ public class SpotifyController {
             return new ModelAndView("redirect:/error?message=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         }
     }
-
+    // this endpoint gets the user's playlists from spotify
     @GetMapping("/me/playlists")
     public ResponseEntity<String> getUserPlaylists(@RequestParam String spotifyId) {
         logger.info("Getting playlists for Spotify ID: {}", spotifyId);
@@ -78,13 +76,14 @@ public class SpotifyController {
     }
 
     
-
+    // this is called after the user logs in and gets thier profile
     @GetMapping("/me")
     public ResponseEntity<String> getUserProfile(@RequestParam String spotifyId) {
         logger.info("Getting user profile for Spotify ID: {}", spotifyId);
         return spotifyService.getUserProfile(spotifyId);
     }
 
+    // this is the dashboard that the user sees after they log in
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> dashboard(@RequestParam String spotifyId) {
         logger.info("Accessing dashboard for Spotify ID: {}", spotifyId);
@@ -118,6 +117,7 @@ public class SpotifyController {
                 .body("An error occurred: " + (message != null ? message : "Unknown error"));
     }
 
+    // this endpoint get the tracks for a playlist with a given playlistId
     @GetMapping("/me/playlists/{playlistId}/tracks")
     public ResponseEntity<String> getPlaylistTracks(
             @PathVariable("playlistId") String playlistId,
@@ -125,86 +125,6 @@ public class SpotifyController {
         logger.info("Getting tracks for playlist ID: {} and Spotify ID: {}", playlistId, spotifyId);
         return spotifyService.getPlaylistTracks(playlistId, spotifyId);
     }
-
-    @PostMapping("/me/playlists/{playlistId}/export")
-    public ResponseEntity<?> exportPlaylist(
-            @PathVariable("playlistId") String playlistId,
-            @RequestParam String spotifyId,
-            @RequestParam String targetPlatform) {
-        logger.info("Exporting playlist ID: {} for Spotify ID: {} to {}", playlistId, spotifyId, targetPlatform);
-        
-        // Only process if target platform is Spotify
-        if (!"spotify".equalsIgnoreCase(targetPlatform)) {
-            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-                .body(Collections.singletonMap("message", 
-                    String.format("Export to %s is not yet implemented", targetPlatform)));
-        }
-
-        try {
-            // Get the user
-            Optional<User> userOpt = userService.getUserBySpotifyId(spotifyId);
-            if (!userOpt.isPresent()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Collections.singletonMap("error", "User not found"));
-            }
-            User user = userOpt.get();
-
-            // Get source playlist tracks
-            ResponseEntity<String> tracksResponse = spotifyService.getPlaylistTracks(playlistId, spotifyId);
-            if (tracksResponse.getStatusCode() != HttpStatus.OK) {
-                return ResponseEntity.status(tracksResponse.getStatusCode())
-                    .body(Collections.singletonMap("error", "Failed to fetch playlist tracks"));
-            }
-
-            // Get playlist details
-            Optional<Playlist> playlistOpt = playlistService.getPlaylistBySpotifyId(playlistId);
-            if (!playlistOpt.isPresent()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Collections.singletonMap("error", "Playlist not found"));
-            }
-            Playlist sourcePlaylist = playlistOpt.get();
-
-            // Create new playlist on Spotify
-            String newPlaylistName = sourcePlaylist.getName() + " (Copy)";
-            ResponseEntity<String> newPlaylistResponse = spotifyService.createPlaylist(
-                spotifyId, 
-                newPlaylistName,
-                false, // private playlist
-                "Copy of " + sourcePlaylist.getName()
-            );
-
-            if (newPlaylistResponse.getStatusCode() != HttpStatus.CREATED) {
-                return ResponseEntity.status(newPlaylistResponse.getStatusCode())
-                    .body(Collections.singletonMap("error", "Failed to create new playlist"));
-            }
-
-            // Parse new playlist ID from response
-            JsonNode newPlaylistJson = objectMapper.readTree(newPlaylistResponse.getBody());
-            String newPlaylistId = newPlaylistJson.get("id").asText();
-
-            // Get track URIs and add them to new playlist
-            List<String> trackUris = spotifyService.getTrackUrisFromResponse(tracksResponse.getBody());
-            ResponseEntity<String> addTracksResponse = spotifyService.addTracksToPlaylist(
-                newPlaylistId,
-                trackUris,
-                0, // add at beginning
-                spotifyId
-            );
-
-            if (addTracksResponse.getStatusCode() != HttpStatus.CREATED) {
-                return ResponseEntity.status(addTracksResponse.getStatusCode())
-                    .body(Collections.singletonMap("error", "Failed to add tracks to new playlist"));
-            }
-
-            return ResponseEntity.ok(Map.of(
-                "message", "Playlist copied successfully to Spotify",
-                "newPlaylistId", newPlaylistId
-            ));
-
-        } catch (Exception e) {
-            logger.error("Error exporting playlist: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to export playlist: " + e.getMessage()));
-        }
-    }
+    
+    
 }
