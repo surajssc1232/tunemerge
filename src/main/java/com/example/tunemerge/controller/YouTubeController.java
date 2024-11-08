@@ -45,7 +45,7 @@ public class YouTubeController {
     @Value("${youtube.redirect.uri}")
     private String redirectUri;
 
-    private static final String SCOPE = "https://www.googleapis.com/auth/youtube";
+    private static final String SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
 
     @Autowired
     private YouTubeService youTubeService;
@@ -151,25 +151,6 @@ public class YouTubeController {
             logger.error("Error fetching YouTube playlist tracks: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error fetching tracks: " + e.getMessage());
-        }
-    }
-
-    @PostMapping("/playlists/{playlistId}/export/youtube")
-    public ResponseEntity<?> exportToYoutube(@PathVariable String playlistId) {
-        try {
-            com.google.api.services.youtube.model.Playlist createdPlaylist = youTubeService.createPlaylist(playlistId);
-            return ResponseEntity.ok(Map.of(
-                "message", "Playlist exported successfully to YouTube!",
-                "playlistId", createdPlaylist.getId(),
-                "playlistUrl", "https://www.youtube.com/playlist?list=" + createdPlaylist.getId()
-            ));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Authentication required: " + e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Error exporting playlist to YouTube: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Error exporting playlist: " + e.getMessage()));
         }
     }
 }
