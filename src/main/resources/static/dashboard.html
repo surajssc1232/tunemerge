@@ -217,13 +217,13 @@
 
         async function loadDashboard() {
             try {
-                const response = await axios.get(`/api/spotify/dashboard?spotifyId=${spotifyId}`);
-                const data = response.data;
-                const userProfile = JSON.parse(data.userProfile);
-                const userPlaylists = JSON.parse(data.userPlaylists);
+                    const response = await axios.get(`/api/spotify/dashboard?spotifyId=${spotifyId}`);
+                    const data = response.data;
+                    const userProfile = JSON.parse(data.userProfile);
+                    const userPlaylists = JSON.parse(data.userPlaylists);
 
-                renderUserProfile(userProfile);
-                renderPlaylists(userPlaylists.items);
+                    renderUserProfile(userProfile);
+                    renderPlaylists(userPlaylists.items);
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }

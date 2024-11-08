@@ -36,6 +36,21 @@
         .amazon-button:hover {
             background-color: #37475A;
         }
+
+        .youtube-button {
+            background-color: #FF0000;  /* YouTube's brand color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+
+        .youtube-button:hover {
+            background-color: #FF4444;  /* Slightly lighter shade for hover */
+        }
     </style>
 </head>
 <body>
@@ -46,6 +61,9 @@
             </button>
             <button onclick="loginWithAmazon()" class="amazon-button">
                 Connect with Amazon Music
+            </button>
+            <button onclick="loginWithYouTube()" class="youtube-button">
+                Connect with YouTube
             </button>
         </div>
     </div>
@@ -69,6 +87,21 @@
         function loginWithAmazon() {
             console.log("Amazon Music login clicked - functionality coming soon");
             alert("Amazon Music integration coming soon!");
+        }
+
+        function loginWithYouTube() {
+            fetch('/api/youtube/login')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.authorizationUrl) {
+                        window.location.href = data.authorizationUrl;
+                    } else {
+                        console.error('Failed to get authorization URL');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
         }
     </script>
 </body>
