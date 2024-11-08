@@ -124,6 +124,66 @@
         .view-tracks-btn:hover {
             background-color: #0056b3;
         }
+
+        /* Add these new styles for the platform selection modal */
+        .platform-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+        }
+
+        .platform-modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 300px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .platform-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .spotify-button {
+            background-color: #1DB954;
+            color: white;
+        }
+
+        .youtube-button {
+            background-color: #FF0000;
+            color: white;
+        }
+
+        .platform-button:hover {
+            opacity: 0.9;
+        }
+
+        .platform-modal-title {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .platform-close {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -140,6 +200,20 @@
             <div id="tracksList">
                 <!-- Tracks will be loaded here -->
             </div>
+        </div>
+    </div>
+
+    <!-- Add this new modal -->
+    <div id="platformModal" class="platform-modal">
+        <div class="platform-modal-content">
+            <span class="platform-close" onclick="closePlatformModal()">&times;</span>
+            <h3 class="platform-modal-title">Export Playlist To</h3>
+            <button class="platform-button spotify-button" onclick="exportToSpotify()">
+                Spotify
+            </button>
+            <button class="platform-button youtube-button" onclick="exportToYoutube()">
+                YouTube Music
+            </button>
         </div>
     </div>
 
@@ -210,16 +284,42 @@
             document.getElementById('tracksModal').style.display = 'none';
         }
 
+        let currentPlaylistId = null;
+
         function exportPlaylist(playlistId) {
-            // TODO: Implement export functionality
-            alert('Export functionality coming soon for playlist: ' + playlistId);
+            currentPlaylistId = playlistId;
+            document.getElementById('platformModal').style.display = 'block';
+        }
+
+        function closePlatformModal() {
+            document.getElementById('platformModal').style.display = 'none';
+            currentPlaylistId = null;
+        }
+
+        function exportToSpotify() {
+            if (!currentPlaylistId) return;
+            // TODO: Implement Spotify export
+            alert('Exporting to Spotify... (Coming soon)');
+            closePlatformModal();
+        }
+
+        function exportToYoutube() {
+            if (!currentPlaylistId) return;
+            // TODO: Implement YouTube Music export
+            alert('Exporting to YouTube Music... (Coming soon)');
+            closePlatformModal();
         }
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('tracksModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
+            const tracksModal = document.getElementById('tracksModal');
+            const platformModal = document.getElementById('platformModal');
+            
+            if (event.target === tracksModal) {
+                tracksModal.style.display = 'none';
+            }
+            if (event.target === platformModal) {
+                closePlatformModal();
             }
         }
 
