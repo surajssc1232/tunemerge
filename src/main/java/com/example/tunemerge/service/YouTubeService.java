@@ -8,6 +8,8 @@ import com.google.api.services.youtube.model.PlaylistListResponse;
 import com.google.api.services.youtube.model.Playlist;
 import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.example.tunemerge.repository.UserTokenRepository;
+import com.example.tunemerge.repository.YtPlaylistRepository;
+import com.example.tunemerge.model.YtPlaylist;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,9 @@ public class YouTubeService {
 
     @Autowired
     private UserTokenRepository userTokenRepository;
+
+    @Autowired
+    private YtPlaylistRepository ytPlaylistRepository;
 
     public List<Playlist> getUserPlaylists() throws IOException {
         // Get the most recent YouTube token
@@ -45,10 +50,20 @@ public class YouTubeService {
         YouTube.Playlists.List request = youtube.playlists()
             .list(Arrays.asList("snippet", "contentDetails"))
             .setMine(true)
-            .setMaxResults(50L); // Adjust this number as needed
+            .setMaxResults(50L);
 
         // Execute the API request
         PlaylistListResponse response = request.execute();
+        
+        // Save playlists to database
+        for (Playlist playlist : response.getItems()) {
+            YtPlaylist ytPlaylist = new YtPlaylist();
+            ytPlaylist.setPlaylistId(playlist.getId());
+            ytPlaylist.setTitle(playlist.getSnippet().getTitle());
+            ytPlaylist.setDescription(playlist.getSnippet().getDescription());
+            ytPlaylistRepository.save(ytPlaylist);
+        }
+
         return response.getItems();
     }
 
