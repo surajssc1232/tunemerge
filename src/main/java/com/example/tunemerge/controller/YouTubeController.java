@@ -110,12 +110,14 @@ public class YouTubeController {
             userToken.setRefreshToken(tokenResponse.getRefreshToken());
             userToken.setProvider("YOUTUBE");
             userToken.setCreatedAt(LocalDateTime.now());
-            // Set expiration time based on token response
             userToken.setExpiresAt(LocalDateTime.now().plusSeconds(tokenResponse.getExpiresInSeconds()));
             
             tokenRepository.save(userToken);
 
-            return ResponseEntity.ok("Successfully authenticated with YouTube!");
+            // Redirect to YouTube dashboard
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", "/ytdashboard.html")
+                    .build();
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error during authentication: " + e.getMessage());

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Dashboard - TuneMerge</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        .playlist-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+        .playlist-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            width: 300px;
+        }
+        .playlist-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .playlist-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .playlist-thumbnail {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .export-btn {
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .export-btn:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Your YouTube Playlists</h1>
+    <div id="playlists" class="playlist-container">
+        <!-- Playlists will be loaded here -->
+    </div>
+
+    <script>
+        function loadPlaylists() {
+            fetch('/api/youtube/playlists')
+                .then(response => response.json())
+                .then(playlists => {
+                    const container = document.getElementById('playlists');
+                    container.innerHTML = playlists.map(playlist => `
+                        <div class="playlist-card">
+                            <img class="playlist-thumbnail" 
+                                 src="${playlist.snippet.thumbnails.medium.url}" 
+                                 alt="${playlist.snippet.title}">
+                            <div class="playlist-title">${playlist.snippet.title}</div>
+                            <div class="playlist-info">
+                                ${playlist.contentDetails.itemCount} tracks
+                                <br>
+                                ${playlist.snippet.description || 'No description'}
+                            </div>
+                            <button class="export-btn" onclick="exportPlaylist('${playlist.id}')">
+                                Export Playlist
+                            </button>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error loading playlists:', error);
+                    document.getElementById('playlists').innerHTML = 
+                        '<p>Error loading playlists. Please try again.</p>';
+                });
+        }
+
+        function exportPlaylist(playlistId) {
+            // TODO: Implement export functionality
+            alert('Export functionality coming soon for playlist: ' + playlistId);
+        }
+
+        // Load playlists when page loads
+        document.addEventListener('DOMContentLoaded', loadPlaylists);
+    </script>
+</body>
+</html> 
