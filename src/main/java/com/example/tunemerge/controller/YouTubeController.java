@@ -138,4 +138,19 @@ public class YouTubeController {
                 .body("Error fetching playlists: " + e.getMessage());
         }
     }
+
+    @GetMapping("/playlists/{playlistId}/tracks")
+    public ResponseEntity<?> getPlaylistTracks(@PathVariable String playlistId) {
+        try {
+            var tracks = youTubeService.getPlaylistTracks(playlistId);
+            return ResponseEntity.ok(tracks);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body("Authentication required: " + e.getMessage());
+        } catch (IOException e) {
+            logger.error("Error fetching YouTube playlist tracks: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error fetching tracks: " + e.getMessage());
+        }
+    }
 }

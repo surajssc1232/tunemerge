@@ -6,6 +6,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.PlaylistListResponse;
 import com.google.api.services.youtube.model.Playlist;
+import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.example.tunemerge.repository.UserTokenRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,5 +74,28 @@ public class YouTubeService {
 
         PlaylistListResponse response = request.execute();
         return response.getItems().get(0);
+    }
+
+    public PlaylistItemListResponse getPlaylistTracks(String playlistId) throws IOException {
+        var ytToken = userTokenRepository.findByProvider("YOUTUBE");
+        if (ytToken == null) {
+            throw new IllegalStateException("No YouTube access token found. Please authenticate first.");
+        }
+
+        GoogleCredential credential = new GoogleCredential().setAccessToken(ytToken.getAccessToken());
+
+        YouTube youtube = new YouTube.Builder(
+            new NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            credential)
+            .setApplicationName("TuneMerge")
+            .build();
+
+        YouTube.PlaylistItems.List request = youtube.playlistItems()
+            .list(Arrays.asList("snippet", "contentDetails"))
+            .setPlaylistId(playlistId)
+            .setMaxResults(50L);
+
+        return request.execute();
     }
 } 

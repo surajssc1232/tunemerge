@@ -52,12 +52,95 @@
         .export-btn:hover {
             background-color: #cc0000;
         }
+
+        /* Add these new styles for the modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 70%;
+            max-height: 70vh;
+            border-radius: 8px;
+            overflow-y: auto;
+        }
+
+        .close-btn {
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .track-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .track-thumbnail {
+            width: 120px;
+            height: 68px;
+            margin-right: 15px;
+            border-radius: 4px;
+        }
+
+        .track-info {
+            flex-grow: 1;
+        }
+
+        .track-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .track-channel {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .view-tracks-btn {
+            background-color: #065fd4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .view-tracks-btn:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
     <h1>Your YouTube Playlists</h1>
     <div id="playlists" class="playlist-container">
         <!-- Playlists will be loaded here -->
+    </div>
+
+    <!-- Tracks Modal -->
+    <div id="tracksModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modalPlaylistTitle"></h2>
+            <div id="tracksList">
+                <!-- Tracks will be loaded here -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -77,6 +160,9 @@
                                 <br>
                                 ${playlist.snippet.description || 'No description'}
                             </div>
+                            <button class="view-tracks-btn" onclick="viewTracks('${playlist.id}', '${playlist.snippet.title}')">
+                                View Tracks
+                            </button>
                             <button class="export-btn" onclick="exportPlaylist('${playlist.id}')">
                                 Export Playlist
                             </button>
@@ -90,9 +176,51 @@
                 });
         }
 
+        function viewTracks(playlistId, playlistTitle) {
+            const modal = document.getElementById('tracksModal');
+            const tracksList = document.getElementById('tracksList');
+            const modalTitle = document.getElementById('modalPlaylistTitle');
+            
+            modalTitle.textContent = playlistTitle;
+            tracksList.innerHTML = '<p>Loading tracks...</p>';
+            modal.style.display = 'block';
+
+            fetch(`/api/youtube/playlists/${playlistId}/tracks`)
+                .then(response => response.json())
+                .then(data => {
+                    tracksList.innerHTML = data.items.map(item => `
+                        <div class="track-item">
+                            <img class="track-thumbnail" 
+                                 src="${item.snippet.thumbnails.default.url}" 
+                                 alt="${item.snippet.title}">
+                            <div class="track-info">
+                                <div class="track-title">${item.snippet.title}</div>
+                                <div class="track-channel">${item.snippet.videoOwnerChannelTitle}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error loading tracks:', error);
+                    tracksList.innerHTML = '<p>Error loading tracks. Please try again.</p>';
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('tracksModal').style.display = 'none';
+        }
+
         function exportPlaylist(playlistId) {
             // TODO: Implement export functionality
             alert('Export functionality coming soon for playlist: ' + playlistId);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('tracksModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
         }
 
         // Load playlists when page loads
