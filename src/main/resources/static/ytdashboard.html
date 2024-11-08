@@ -305,9 +305,24 @@
 
         function exportToYoutube() {
             if (!currentPlaylistId) return;
-            // TODO: Implement YouTube Music export
-            alert('Exporting to YouTube Music... (Coming soon)');
-            closePlatformModal();
+            
+            fetch(`/api/youtube/playlists/${currentPlaylistId}/export/youtube`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                alert(data.message + '\nPlaylist URL: ' + data.playlistUrl);
+            })
+            .catch(error => {
+                console.error('Error exporting playlist:', error);
+                alert('Failed to export playlist: ' + error.message);
+            })
+            .finally(() => {
+                closePlatformModal();
+            });
         }
 
         // Close modal when clicking outside
