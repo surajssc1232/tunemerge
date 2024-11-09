@@ -150,7 +150,7 @@ public class SpotifyService {
         return user.getAccessToken();
     }
 
-    private void refreshAccessToken(User user) {
+    public void refreshAccessToken(User user) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setBasicAuth(Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes()));

@@ -1,14 +1,15 @@
 package com.example.tunemerge.repository;
 
-import com.example.tunemerge.model.User;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.example.tunemerge.model.User;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findBySpotifyId(String spotifyId);
+    Optional<User> findFirstBySpotifyId(String spotifyId);
     Optional<User> findByEmail(String email);
     boolean existsBySpotifyId(String spotifyId);
 }

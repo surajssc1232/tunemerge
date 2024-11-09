@@ -2,8 +2,10 @@ package com.example.tunemerge.controller;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -19,11 +21,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.example.tunemerge.model.SearchResult;
 import com.example.tunemerge.model.User;
 import com.example.tunemerge.service.PlaylistService;
 import com.example.tunemerge.service.SpotifyService;
 import com.example.tunemerge.service.TrackService;
 import com.example.tunemerge.service.UserService;
+import com.example.tunemerge.service.YouTubeService;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
@@ -37,11 +42,15 @@ public class SpotifyController {
     private static final Logger logger = LoggerFactory.getLogger(SpotifyController.class);
 
     @Autowired
-    public SpotifyController(SpotifyService spotifyService, UserService userService, PlaylistService playlistService, TrackService trackService) {
+    private YouTubeService youTubeService;
+
+    @Autowired
+    public SpotifyController(SpotifyService spotifyService, UserService userService, PlaylistService playlistService, TrackService trackService, YouTubeService youTubeService) {
         this.spotifyService = spotifyService;
         this.userService = userService;
         this.playlistService = playlistService;
         this.trackService = trackService;
+        this.youTubeService = youTubeService;
     }
 
     // sends the user to spotify by getting the authorization url
@@ -62,7 +71,9 @@ public class SpotifyController {
         try {
             String spotifyId = spotifyService.exchangeCodeForTokens(code);
             logger.info("Tokens exchanged successfully, Spotify ID: {}", spotifyId);
-            return new ModelAndView("redirect:/dashboard.html?spotifyId=" + spotifyId);
+            
+            // Return a page that sends message to opener and closes itself
+            return new ModelAndView("redirect:/auth-success.html?spotifyId=" + spotifyId);
         } catch (Exception e) {
             logger.error("Error during token exchange", e);
             return new ModelAndView("redirect:/error?message=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
@@ -136,6 +147,107 @@ public class SpotifyController {
             logger.error("Error searching tracks: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error searching tracks: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/export-to-youtube")
+    public ResponseEntity<?> exportToYoutube(
+            @RequestParam String playlistId,
+            @RequestParam(required = false) String spotifyId,
+            @RequestParam(required = false) String youtubeToken) {
+        try {
+            logger.info("Starting export process for playlist {} with spotifyId {}", playlistId, spotifyId);
+            
+            // Check if user is authenticated with Spotify
+            if (spotifyId == null || spotifyId.isEmpty()) {
+                logger.info("User not authenticated with Spotify, returning authorization URL");
+                String authUrl = spotifyService.getAuthorizationUrl();
+                Map<String, String> response = new HashMap<>();
+                response.put("needsAuth", "true");
+                response.put("authUrl", authUrl);
+                return ResponseEntity.ok(response);
+            }
+
+            // Validate user exists and has valid tokens
+            Optional<User> userOpt = userService.getUserBySpotifyId(spotifyId);
+            if (userOpt.isEmpty()) {
+                logger.error("User not found for Spotify ID: {}", spotifyId);
+                Map<String, String> response = new HashMap<>();
+                response.put("needsAuth", "true");
+                response.put("authUrl", spotifyService.getAuthorizationUrl());
+                return ResponseEntity.ok(response);
+            }
+
+            User user = userOpt.get();
+            // Check if token is expired
+            if (System.currentTimeMillis() > user.getTokenExpirationTime()) {
+                logger.info("Token expired, refreshing...");
+                spotifyService.refreshAccessToken(user);
+            }
+
+            logger.info("Starting export of YouTube playlist {} to Spotify", playlistId);
+            
+            // Get YouTube playlist tracks instead of Spotify
+            ResponseEntity<String> playlistTracksResponse = youTubeService.getPlaylistItems(playlistId);
+            if (playlistTracksResponse == null || playlistTracksResponse.getBody() == null) {
+                logger.error("Failed to fetch playlist tracks from YouTube");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Failed to fetch playlist tracks"));
+            }
+
+            List<SearchResult> matchedTracks = new ArrayList<>();
+            List<String> unmatchedTracks = new ArrayList<>();
+            
+            // Parse YouTube response
+            JsonNode playlistItems = objectMapper.readTree(playlistTracksResponse.getBody()).get("items");
+            logger.info("Found {} tracks to process", playlistItems.size());
+
+            for (JsonNode item : playlistItems) {
+                JsonNode snippet = item.get("snippet");
+                if (snippet == null || snippet.isNull()) {
+                    logger.warn("Skipping null snippet in playlist item");
+                    continue;
+                }
+                
+                String title = snippet.get("title").asText();
+                logger.info("Processing YouTube track: {}", title);
+                
+                try {
+                    // Search this track on Spotify
+                    ResponseEntity<String> spotifySearchResponse = spotifyService.searchTracks(title, spotifyId);
+                    JsonNode searchResults = objectMapper.readTree(spotifySearchResponse.getBody());
+                    JsonNode tracks = searchResults.get("tracks").get("items");
+                    
+                    if (tracks.size() > 0) {
+                        JsonNode bestMatch = tracks.get(0);
+                        String trackId = bestMatch.get("id").asText();
+                        String trackName = bestMatch.get("name").asText();
+                        String artistName = bestMatch.get("artists").get(0).get("name").asText();
+                        
+                        SearchResult match = new SearchResult(trackId, trackName, artistName, 0.8);
+                        matchedTracks.add(match);
+                        logger.info("Found Spotify match for: {} (Track ID: {})", title, trackId);
+                    } else {
+                        logger.warn("No Spotify match found for: {}", title);
+                        unmatchedTracks.add(title);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error processing track {}: {}", title, e.getMessage());
+                    unmatchedTracks.add(title + " (Error: " + e.getMessage() + ")");
+                }
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("matched", matchedTracks);
+            result.put("unmatched", unmatchedTracks);
+            logger.info("Export completed. Matched: {}, Unmatched: {}", matchedTracks.size(), unmatchedTracks.size());
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            logger.error("Error exporting playlist to YouTube: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.singletonMap("error", e.getMessage()));
         }
     }
 }

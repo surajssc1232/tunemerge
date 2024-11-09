@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authentication Success</title>
+</head>
+<body>
+    <h1>Authentication Status</h1>
+    <p>Authentication successful! You can close this window.</p>
+
+    <script>
+        // Get spotifyId from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const spotifyId = urlParams.get('spotifyId');
+
+        // Try to communicate with opener window
+        if (window.opener) {
+            try {
+                window.opener.postMessage({
+                    type: 'spotifyAuth',
+                    spotifyId: spotifyId
+                }, '*');
+                window.close();
+            } catch (e) {
+                console.error('Failed to communicate with opener:', e);
+                redirectToDashboard();
+            }
+        } else {
+            // If no opener window, redirect to dashboard
+            redirectToDashboard();
+        }
+
+        function redirectToDashboard() {
+            if (spotifyId) {
+                window.location.href = `/dashboard.html?spotifyId=${spotifyId}`;
+            } else {
+                document.body.innerHTML += '<p>Error: No Spotify ID found. Please try logging in again.</p>';
+            }
+        }
+    </script>
+</body>
+</html> 
