@@ -125,6 +125,17 @@ public class SpotifyController {
         logger.info("Getting tracks for playlist ID: {} and Spotify ID: {}", playlistId, spotifyId);
         return spotifyService.getPlaylistTracks(playlistId, spotifyId);
     }
-    
-    
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchTracks(
+        @RequestParam String query,
+        @RequestParam String spotifyId) {
+        try {
+            return spotifyService.searchTracks(query, spotifyId);
+        } catch (Exception e) {
+            logger.error("Error searching tracks: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error searching tracks: " + e.getMessage());
+        }
+    }
 }

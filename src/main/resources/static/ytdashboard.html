@@ -298,9 +298,69 @@
 
         function exportToSpotify() {
             if (!currentPlaylistId) return;
-            // TODO: Implement Spotify export
-            alert('Exporting to Spotify... (Coming soon)');
-            closePlatformModal();
+            
+            // Show loading state
+            const platformModal = document.getElementById('platformModal');
+            platformModal.style.display = 'none';
+            
+            // Show progress modal
+            const progressModal = document.createElement('div');
+            progressModal.className = 'modal';
+            progressModal.style.display = 'block';
+            progressModal.innerHTML = `
+                <div class="modal-content">
+                    <h3>Exporting to Spotify</h3>
+                    <p>Searching for matching tracks...</p>
+                    <div class="progress-bar"></div>
+                </div>
+            `;
+            document.body.appendChild(progressModal);
+
+            // Call the export endpoint
+            fetch(`/api/youtube/export-to-spotify?playlistId=${currentPlaylistId}&spotifyId=${spotifyUserId}`)
+                .then(response => response.json())
+                .then(result => {
+                    // Remove progress modal
+                    progressModal.remove();
+                    
+                    // Show results modal
+                    showExportResults(result.matched, result.unmatched);
+                })
+                .catch(error => {
+                    console.error('Error exporting to Spotify:', error);
+                    progressModal.remove();
+                    alert('Failed to export playlist: ' + error.message);
+                });
+        }
+
+        function showExportResults(matched, unmatched) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close-btn" onclick="this.parentElement.parentElement.remove()">&times;</span>
+                    <h3>Export Results</h3>
+                    <p>Successfully matched: ${matched.length} tracks</p>
+                    <p>Unmatched tracks: ${unmatched.length}</p>
+                    
+                    ${unmatched.length > 0 ? `
+                        <h4>Unmatched Tracks:</h4>
+                        <ul>
+                            ${unmatched.map(track => `<li>${track}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    
+                    ${matched.length > 0 ? `
+                        <button onclick="createSpotifyPlaylist('${matched.map(m => m.id).join(',')}')">
+                            Create Spotify Playlist
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
         }
 
         function exportToYoutube() {

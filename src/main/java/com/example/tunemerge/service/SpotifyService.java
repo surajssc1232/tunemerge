@@ -6,6 +6,8 @@ import java.util.UUID;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.example.tunemerge.model.SpotifyTokenResponse;
 import com.example.tunemerge.model.User;
+import com.example.tunemerge.model.SearchResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -264,6 +267,103 @@ public class SpotifyService {
             logger.error("Error parsing track URIs: {}", e.getMessage());
             throw new RuntimeException("Failed to parse track URIs", e);
         }
+    }
+
+    public ResponseEntity<String> searchTrack(String query, String spotifyId) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(getAccessTokenForUser(spotifyId));
+            HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
+
+            String encodedQuery = UriComponentsBuilder.fromUriString(query).encode().toUriString();
+            String url = BASE_URL + "/search?q=" + encodedQuery + "&type=track&limit=5";
+            
+            logger.info("Searching for track with query: {}", query);
+            return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+        } catch (Exception e) {
+            logger.error("Error searching for track: {}", e.getMessage());
+            throw new RuntimeException("Failed to search for track", e);
+        }
+    }
+
+    public SearchResult findBestMatch(String trackName, String artistName, String spotifyId) {
+        try {
+            // Create a search query combining track and artist
+            String searchQuery = trackName;
+            if (artistName != null && !artistName.isEmpty()) {
+                searchQuery += " artist:" + artistName;
+            }
+            
+            ResponseEntity<String> response = searchTrack(searchQuery, spotifyId);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(response.getBody());
+                JsonNode tracks = root.path("tracks").path("items");
+                
+                if (tracks.isArray() && tracks.size() > 0) {
+                    // Get the first (best) match
+                    JsonNode bestMatch = tracks.get(0);
+                    
+                    // Calculate similarity score
+                    double similarity = calculateSimilarity(
+                        trackName.toLowerCase(),
+                        bestMatch.path("name").asText().toLowerCase()
+                    );
+                    
+                    return new SearchResult(
+                        bestMatch.path("id").asText(),
+                        bestMatch.path("name").asText(),
+                        bestMatch.path("artists").get(0).path("name").asText(),
+                        similarity
+                    );
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            logger.error("Error finding best match: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private double calculateSimilarity(String s1, String s2) {
+        int maxLength = Math.max(s1.length(), s2.length());
+        if (maxLength == 0) return 1.0;
+        
+        int distance = levenshteinDistance(s1, s2);
+        return 1.0 - ((double) distance / maxLength);
+    }
+
+    private int levenshteinDistance(String s1, String s2) {
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+        
+        for (int i = 0; i <= s1.length(); i++) {
+            for (int j = 0; j <= s2.length(); j++) {
+                if (i == 0) {
+                    dp[i][j] = j;
+                } else if (j == 0) {
+                    dp[i][j] = i;
+                } else {
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j - 1] + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1),
+                        Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1)
+                    );
+                }
+            }
+        }
+        
+        return dp[s1.length()][s2.length()];
+    }
+
+    public ResponseEntity<String> searchTracks(String query, String spotifyId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(getAccessTokenForUser(spotifyId));
+        HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
+
+        String url = BASE_URL + "/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8) 
+            + "&type=track&limit=10";
+
+        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
     }
 
 }
