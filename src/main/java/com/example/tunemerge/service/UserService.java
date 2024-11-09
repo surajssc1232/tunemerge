@@ -19,16 +19,6 @@ public class UserService {
     }
 
     public User createUser(User user) {
-        Optional<User> existingUser = userRepository.findFirstBySpotifyId(user.getSpotifyId());
-        if (existingUser.isPresent()) {
-            User existing = existingUser.get();
-            existing.setEmail(user.getEmail());
-            existing.setDisplayName(user.getDisplayName());
-            existing.setAccessToken(user.getAccessToken());
-            existing.setRefreshToken(user.getRefreshToken());
-            existing.setTokenExpirationTime(user.getTokenExpirationTime());
-            return userRepository.save(existing);
-        }
         return userRepository.save(user);
     }
 
@@ -37,7 +27,7 @@ public class UserService {
     }
 
     public Optional<User> getUserBySpotifyId(String spotifyId) {
-        return userRepository.findFirstBySpotifyId(spotifyId);
+        return userRepository.findBySpotifyId(spotifyId);
     }
 
     public Optional<User> getUserByEmail(String email) {

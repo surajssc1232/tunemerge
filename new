@@ -1,0 +1,203 @@
+[33mcommit 6f42fb9dd42184a3354492f29c025223c85cebb5[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sat Nov 9 15:49:05 2024 +0530
+
+    new
+
+[33mcommit 3daf1f0459e1402f79aed973b96c36864d6c2dbe[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sat Nov 9 15:02:04 2024 +0530
+
+    now can search in yt after getting authorized
+
+[33mcommit 8b6310536f8af53956e0b366401b7c8737f6e605[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sat Nov 9 14:54:24 2024 +0530
+
+    now can search tracks in the spotify database using a query http://localhost:8080/api/spotify/search?query=am i dreaming&spotifyId=31jxutu2lfvn27nh6i4uvd65rcxm LIKE THIS YOU CAN SEARCH ANYTHING YOU WANT YESSS FUCKING YES
+
+[33mcommit 78977c2d976c9301c164bf43a4f4f2a0d5f4c83a[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 8 15:54:32 2024 +0530
+
+    hey
+
+[33mcommit 30089cda6c406874df6e0b3cc7e7bd50b7ad83e7[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 8 15:37:15 2024 +0530
+
+    can export to yt now
+
+[33mcommit b8f174efc190825b5ec97591485e0477bd36ec3b[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 8 15:31:07 2024 +0530
+
+    added a modal
+
+[33mcommit 7797fd15db79dfff9cd301d71b608c5ea870a97b[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 8 15:25:16 2024 +0530
+
+    stored the playlists inside the db
+
+[33mcommit b9051c0242d43cbda316ae1f22246387079d8700[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 8 15:12:39 2024 +0530
+
+    now can see the tracks of each yt playlist
+
+[33mcommit cac3c4ba179728f9f1376dfd15432015fae82578[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 8 15:09:18 2024 +0530
+
+    now can see the playlists on the browser
+
+[33mcommit 4607e3da720b861eb30cbb63f000281fb7985646[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 8 15:05:53 2024 +0530
+
+    added  youtube auth and getting playlists from api
+
+[33mcommit f40cebaa758c7e65af89a2858300fe8ac37f8b31[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 8 09:59:19 2024 +0530
+
+    added a connect with amazon button
+
+[33mcommit a9dd87f46ba02d4f83acacb32efa968fb22fc2d7[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 1 13:43:36 2024 +0530
+
+    added three buttons for destination platforms
+
+[33mcommit c114772199ac36bd0c76915840b21f2a649c9635[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 1 13:37:15 2024 +0530
+
+    export to spotify successfull
+
+[33mcommit 9778104dfa440f91cd9bb8710f425fbf7e124c19[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 1 12:42:56 2024 +0530
+
+    storing the tracks in the database while exporting it
+
+[33mcommit bfa7987f19a1b6b8cf3811175c4978781bc68838[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Fri Nov 1 12:11:09 2024 +0530
+
+    stored the playlists to the database
+
+[33mcommit a7b46cc26b4f04d2ba4342f3d8384c53f9a1e63e[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 21:20:48 2024 +0530
+
+    nothing
+
+[33mcommit 8317638beb96a0fb5feaba723a44a67693f42710[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 21:16:12 2024 +0530
+
+    nothing new
+
+[33mcommit abf0e61633b4d056b3e73b1cfe33a951c5e09c6b[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 21:14:15 2024 +0530
+
+    added a modal for viewing tracks under the name of the playlists u can now see the tracks
+
+[33mcommit afe4e032cb58d5311891f5909656cdbc2ae11257[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 20:57:56 2024 +0530
+
+    enhanced the frontend a little bit for dashboard
+
+[33mcommit 73b3fd3d895efd8cf9629174b4076220f79dfcde[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 20:51:08 2024 +0530
+
+    stored the access token
+
+[33mcommit c98f35563db957a6184dd783d67ae12e47d22ab7[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 20:23:33 2024 +0530
+
+    removed uselsess methods
+
+[33mcommit 43a80255f8a57c6eee7313c9279bf721d88398f0[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 09:35:21 2024 +0530
+
+    DRY
+
+[33mcommit 1cbb460e209053a024c00b652de50739e02cb5c8[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 09:32:33 2024 +0530
+
+    now can get user profile and playlists on the frontedn
+
+[33mcommit 0952f0ef247c4077de2b43b8a03c066fe7d50175[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 09:18:20 2024 +0530
+
+    DRY(dont repeat yourself)
+
+[33mcommit b1ec2219592a0f4a90282e4c4eba7e20e2c005ba[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 27 09:11:52 2024 +0530
+
+    added a button on the frontend for the authorization
+
+[33mcommit aaf93f9dd9caa68e959b2c4b94796833047399ed[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sat Oct 26 14:20:18 2024 +0530
+
+    added two functionalities to get playlits and to get tracks inside the playlists
+
+[33mcommit b8d2129e50005a2b8a25920f1c0bef283adf9084[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 20 16:07:11 2024 +0530
+
+    added oauth in the app and got the access token
+
+[33mcommit 4814ff3dc07f1f005d969706cd863cc2bdc0d9fb[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 20 15:33:16 2024 +0530
+
+    not new
+
+[33mcommit b9ec69e5160af798d7a67fbb44c71464a59b278a[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 20 15:31:39 2024 +0530
+
+    nothing new
+
+[33mcommit 17b6906e756848a09ed066caa01585e0365d58d5[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 20 15:30:33 2024 +0530
+
+    added a basic structure for the project
+
+[33mcommit db286b9531e4337327f2eed12bbde7b7f58a2d7c[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 20 15:16:05 2024 +0530
+
+    added a simple readme and some instructions
+
+[33mcommit e523f1e7736741216dcc1a52a300a8e9ed909693[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 20 15:15:14 2024 +0530
+
+    added a simple readme and some instructions
+
+[33mcommit 018bad3f036add32a13c5b2d089d183e2cb9c957[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 20 15:11:47 2024 +0530
+
+    added client secret and client id in a .env file
+
+[33mcommit 6601bc6e43f816feb86b3fae9bca66766d3d7c7e[m
+Author: Suraj chauhan <surajssc1232@gmail.com>
+Date:   Sun Oct 20 15:07:43 2024 +0530
+
+    init commit
