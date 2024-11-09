@@ -207,6 +207,18 @@ public class YouTubeController {
         }
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<?> searchVideos(
+        @RequestParam String query) {
+        try {
+            return youTubeService.searchVideos(query);
+        } catch (Exception e) {
+            logger.error("Error searching videos: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error searching videos: " + e.getMessage());
+        }
+    }
+
     private TrackInfo extractTrackInfo(String videoTitle) {
         // Remove common YouTube music video suffixes
         videoTitle = videoTitle.replaceAll("(?i)(\\(Official.*?\\))|(\\[Official.*?\\])", "")

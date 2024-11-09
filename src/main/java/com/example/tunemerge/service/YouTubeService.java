@@ -1,23 +1,24 @@
 package com.example.tunemerge.service;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import com.example.tunemerge.model.YtPlaylist;
+import com.example.tunemerge.repository.UserTokenRepository;
+import com.example.tunemerge.repository.YtPlaylistRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
-import com.google.api.services.youtube.model.PlaylistListResponse;
 import com.google.api.services.youtube.model.Playlist;
 import com.google.api.services.youtube.model.PlaylistItemListResponse;
-import com.example.tunemerge.repository.UserTokenRepository;
-import com.example.tunemerge.repository.YtPlaylistRepository;
-import com.example.tunemerge.model.YtPlaylist;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Arrays;
-import java.util.Collections;
+import com.google.api.services.youtube.model.PlaylistListResponse;
 
 @Service
 public class YouTubeService {
@@ -112,5 +113,31 @@ public class YouTubeService {
             .setMaxResults(50L);
 
         return request.execute();
+    }
+
+    public ResponseEntity<?> searchVideos(String query) throws IOException {
+        var ytToken = userTokenRepository.findByProvider("YOUTUBE");
+        if (ytToken == null) {
+            throw new IllegalStateException("No YouTube access token found");
+        }
+
+        GoogleCredential credential = new GoogleCredential()
+            .setAccessToken(ytToken.getAccessToken());
+
+        YouTube youtube = new YouTube.Builder(
+            new NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            credential)
+            .setApplicationName("TuneMerge")
+            .build();
+
+        YouTube.Search.List request = youtube.search()
+            .list(Arrays.asList("snippet"))
+            .setQ(query)
+            .setType(Collections.singletonList("video"))
+            .setVideoCategoryId("10") // Music category
+            .setMaxResults(10L);
+
+        return ResponseEntity.ok(request.execute());
     }
 } 
